@@ -12,6 +12,7 @@ import {
 import { Song } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { chipSounds } from '@/lib/sounds';
 
 interface MusicPlayerProps {
   song: Song | null;
@@ -182,14 +183,20 @@ export function MusicPlayer({
             <Button
               size="icon"
               variant="ghost"
-              onClick={onPrevious}
+              onClick={() => {
+                chipSounds.navigate();
+                onPrevious();
+              }}
               className="glass hover:bg-white/10 rounded-full h-10 w-10"
             >
               <SkipBack className="h-5 w-5" />
             </Button>
             <Button
               size="icon"
-              onClick={onPlayPause}
+              onClick={() => {
+                chipSounds.click();
+                onPlayPause();
+              }}
               className="glass-strong bg-primary/20 hover:bg-primary/30 rounded-full h-12 w-12"
             >
               {isPlaying ? (
@@ -201,7 +208,10 @@ export function MusicPlayer({
             <Button
               size="icon"
               variant="ghost"
-              onClick={onNext}
+              onClick={() => {
+                chipSounds.navigate();
+                onNext();
+              }}
               className="glass hover:bg-white/10 rounded-full h-10 w-10"
             >
               <SkipForward className="h-5 w-5" />
@@ -212,7 +222,10 @@ export function MusicPlayer({
             <Button
               size="icon"
               variant="ghost"
-              onClick={() => setIsMuted(!isMuted)}
+              onClick={() => {
+                chipSounds.hover();
+                setIsMuted(!isMuted);
+              }}
               className="glass hover:bg-white/10 rounded-full h-10 w-10"
             >
               {isMuted ? (

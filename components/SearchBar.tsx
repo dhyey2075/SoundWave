@@ -54,45 +54,18 @@ export function SearchBar({ onSearch }: SearchBarProps) {
     
     if (SpeechRecognition) {
       setIsSupported(true);
-      recognitionRef.current = new SpeechRecognition();
-      const recognition = recognitionRef.current;
-      
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = 'en-US';
-
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
-        const transcript = event.results[event.resultIndex][0].transcript;
-        setQuery(transcript);
-        setIsListening(false);
-        onSearch(transcript);
-      };
-
-      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-        
-        // Show user-friendly error messages
-        if (event.error === 'no-speech') {
-          // User didn't speak, just stop listening
-        } else if (event.error === 'audio-capture') {
-          alert('No microphone found. Please ensure your microphone is connected and permissions are granted.');
-        } else if (event.error === 'not-allowed') {
-          alert('Microphone permission denied. Please enable microphone access in your browser settings.');
-        }
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
     }
 
     return () => {
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          // Ignore errors on cleanup
+        }
       }
     };
-  }, [onSearch]);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,18 +80,70 @@ export function SearchBar({ onSearch }: SearchBarProps) {
       return;
     }
 
-    if (!recognitionRef.current) return;
+    const windowWithSpeech = window as unknown as WindowWithSpeechRecognition;
+    const SpeechRecognition = windowWithSpeech.SpeechRecognition || windowWithSpeech.webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      alert('Speech recognition is not available.');
+      return;
+    }
 
     if (isListening) {
-      recognitionRef.current.stop();
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          console.error('Error stopping recognition:', e);
+        }
+      }
       setIsListening(false);
     } else {
       try {
-        recognitionRef.current.start();
+        // Create a new recognition instance each time
+        const recognition = new SpeechRecognition();
+        recognitionRef.current = recognition;
+        
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+
+        recognition.onresult = (event: any) => {
+          const transcript = event.results[event.resultIndex][0].transcript;
+          setQuery(transcript);
+          setIsListening(false);
+          onSearch(transcript);
+        };
+
+        recognition.onerror = (event: any) => {
+          console.error('Speech recognition error:', event.error);
+          setIsListening(false);
+          
+          // Show user-friendly error messages
+          if (event.error === 'no-speech') {
+            // User didn't speak, just stop listening silently
+          } else if (event.error === 'audio-capture') {
+            alert('No microphone found. Please ensure your microphone is connected and permissions are granted.');
+          } else if (event.error === 'not-allowed') {
+            alert('Microphone permission denied. Please enable microphone access in your browser settings.');
+          } else if (event.error === 'network') {
+            alert('Network error. Please check your internet connection.');
+          } else {
+            console.error('Speech recognition error:', event.error, event.message);
+          }
+        };
+
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+
+        recognition.start();
         setIsListening(true);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error starting speech recognition:', error);
         setIsListening(false);
+        if (error.message) {
+          alert(`Error: ${error.message}`);
+        }
       }
     }
   };

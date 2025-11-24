@@ -7,7 +7,9 @@ import { SongCard } from '@/components/SongCard';
 import { MusicPlayer } from '@/components/MusicPlayer';
 import { BackgroundDots } from '@/components/BackgroundDots';
 import { CursorFollower } from '@/components/CursorFollower';
+import { MusicLoader } from '@/components/MusicLoader';
 import { searchSongs } from '@/lib/api';
+import { chipSounds } from '@/lib/sounds';
 import type { Song } from '@/lib/types';
 
 export default function Home() {
@@ -34,6 +36,7 @@ export default function Home() {
 
   const handleNext = () => {
     if (!currentSong || songs.length === 0) return;
+    chipSounds.navigate();
     const currentIndex = songs.findIndex(song => song.id === currentSong.id);
     const nextIndex = (currentIndex + 1) % songs.length;
     setCurrentSong(songs[nextIndex]);
@@ -42,6 +45,7 @@ export default function Home() {
 
   const handlePrevious = () => {
     if (!currentSong || songs.length === 0) return;
+    chipSounds.navigate();
     const currentIndex = songs.findIndex(song => song.id === currentSong.id);
     const previousIndex = (currentIndex - 1 + songs.length) % songs.length;
     setCurrentSong(songs[previousIndex]);
@@ -76,11 +80,7 @@ export default function Home() {
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center py-20">
-            <div className="glass-strong rounded-full p-4">
-              <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-            </div>
-          </div>
+          <MusicLoader />
         ) : songs.length > 0 ? (
           <div className="flex justify-center w-full">
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 w-full">

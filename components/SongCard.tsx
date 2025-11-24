@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Play, Pause } from 'lucide-react';
 import { Song } from '@/lib/types';
 import { Button } from '@/components/ui/button';
+import { chipSounds, stopAllChipSounds } from '@/lib/sounds';
 
 interface SongCardProps {
   song: Song;
@@ -33,31 +34,58 @@ const getColorForSong = (songId: string) => {
 export function SongCard({ song, isPlaying, isActive, onPlay }: SongCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const textColor = getColorForSong(song.id);
-  const previewAudioRef = useRef<HTMLAudioElement>(null);
   const showBorderAnimation = isActive && isPlaying;
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Handle hover preview
-  useEffect(() => {
-    const audio = previewAudioRef.current;
-    if (!audio || !song.previewUrl) return;
-
-    if (isHovered) {
-      audio.currentTime = 6; // Skip first 6 seconds
-      audio.volume = 0.3;
-      audio.play().catch(() => {
-        // Silently fail if autoplay is blocked
-      });
-    } else {
-      audio.pause();
-      audio.currentTime = 0;
+  const handleMouseEnter = () => {
+    // Clear any pending timeouts
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
     }
-  }, [isHovered, song.previewUrl]);
+    
+    // Stop any existing sounds
+    stopAllChipSounds();
+    
+    setIsHovered(true);
+    // Small delay to prevent rapid fire sounds
+    hoverTimeoutRef.current = setTimeout(() => {
+      chipSounds.hover();
+    }, 10);
+  };
+
+  const handleMouseLeave = () => {
+    // Clear timeout if still pending
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    
+    // Stop all sounds immediately
+    stopAllChipSounds();
+    setIsHovered(false);
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+      stopAllChipSounds();
+    };
+  }, []);
+
+  const handlePlayClick = () => {
+    chipSounds.click();
+    onPlay(song);
+  };
 
   return (
     <div
       className="group relative"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <div
         className={`
@@ -74,6 +102,23 @@ export function SongCard({ song, isPlaying, isActive, onPlay }: SongCardProps) {
           animation: !isHovered && !showBorderAnimation ? 'floating 3s ease-in-out infinite' : 'none',
         }}
       >
+        {/* Glowing colorful border on hover - around entire card */}
+        {isHovered && (
+          <div
+            className="absolute -inset-1 rounded-2xl pointer-events-none z-0"
+            style={{
+              background: `linear-gradient(135deg, ${textColor.color}20, ${textColor.color}10)`,
+              border: `2px solid ${textColor.color}`,
+              boxShadow: `
+                0 0 20px ${textColor.color}80,
+                0 0 40px ${textColor.color}60,
+                0 0 60px ${textColor.color}40,
+                inset 0 0 20px ${textColor.color}30
+              `,
+              animation: 'glowPulse 2s ease-in-out infinite',
+            }}
+          />
+        )}
         {/* Live animated border when playing */}
         {showBorderAnimation && (
           <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none z-10">
@@ -145,7 +190,7 @@ export function SongCard({ song, isPlaying, isActive, onPlay }: SongCardProps) {
                   hover:bg-white/30 transition-all duration-300
                   ${isHovered ? 'scale-100' : 'scale-90'}
                 `}
-                onClick={() => onPlay(song)}
+                onClick={handlePlayClick}
               >
                 {isActive && isPlaying ? (
                   <Pause className="h-8 w-8 text-white" />
@@ -187,15 +232,6 @@ export function SongCard({ song, isPlaying, isActive, onPlay }: SongCardProps) {
           </div>
         </div>
       </div>
-
-      {/* Hidden audio for preview */}
-      {song.previewUrl && (
-        <audio
-          ref={previewAudioRef}
-          src={song.previewUrl}
-          preload="none"
-        />
-      )}
     </div>
   );
 }
