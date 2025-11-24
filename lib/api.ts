@@ -1,3 +1,5 @@
+import type { Song } from './types';
+
 export async function searchSongs(query: string): Promise<Song[]> {
   if (!query) return [];
   
