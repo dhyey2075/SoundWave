@@ -1,0 +1,230 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 5%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 280 100% 70%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 280 100% 70%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 280 100% 70%;
+    --radius: 1rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-[#0a0a0a] text-foreground;
+    background-image: 
+      radial-gradient(circle at 20% 50%, rgba(255, 110, 199, 0.15) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(255, 235, 110, 0.15) 0%, transparent 50%),
+      radial-gradient(circle at 40% 20%, rgba(110, 255, 199, 0.15) 0%, transparent 50%),
+      radial-gradient(circle at 60% 70%, rgba(255, 159, 110, 0.12) 0%, transparent 50%),
+      radial-gradient(circle at 90% 30%, rgba(159, 110, 255, 0.12) 0%, transparent 50%);
+  }
+  
+  @keyframes gradient {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .glass-strong {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  
+  .glow-text {
+    text-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor;
+  }
+  
+  .glow-text-pink {
+    color: #ff6ec7;
+    text-shadow: 0 0 10px #ff6ec7, 0 0 20px #ff6ec7, 0 0 30px #ff6ec7;
+  }
+  
+  .glow-text-blue {
+    color: #6ec7ff;
+    text-shadow: 0 0 10px #6ec7ff, 0 0 20px #6ec7ff, 0 0 30px #6ec7ff;
+  }
+  
+  .glow-text-purple {
+    color: #b86ec7;
+    text-shadow: 0 0 10px #b86ec7, 0 0 20px #b86ec7, 0 0 30px #b86ec7;
+  }
+  
+  .glow-text-cyan {
+    color: #6effc7;
+    text-shadow: 0 0 10px #6effc7, 0 0 20px #6effc7, 0 0 30px #6effc7;
+  }
+  
+  .glow-text-orange {
+    color: #ff9f6e;
+    text-shadow: 0 0 10px #ff9f6e, 0 0 20px #ff9f6e, 0 0 30px #ff9f6e;
+  }
+  
+  .glow-text-yellow {
+    color: #ffeb6e;
+    text-shadow: 0 0 10px #ffeb6e, 0 0 20px #ffeb6e, 0 0 30px #ffeb6e;
+  }
+  
+  .glow-text-green {
+    color: #6eff9f;
+    text-shadow: 0 0 10px #6eff9f, 0 0 20px #6eff9f, 0 0 30px #6eff9f;
+  }
+  
+  .glow-text-red {
+    color: #ff6e9f;
+    text-shadow: 0 0 10px #ff6e9f, 0 0 20px #ff6e9f, 0 0 30px #ff6e9f;
+  }
+  
+  .glow-text-indigo {
+    color: #9f6eff;
+    text-shadow: 0 0 10px #9f6eff, 0 0 20px #9f6eff, 0 0 30px #9f6eff;
+  }
+  
+  .floating {
+    animation: floating 3s ease-in-out infinite;
+  }
+  
+  @keyframes floating {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+  
+  .border-wave {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .border-wave::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--primary), transparent);
+    animation: borderWave 2s linear infinite;
+  }
+  
+  .border-wave::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: -100%;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--primary), transparent);
+    animation: borderWave 2s linear infinite reverse;
+  }
+  
+  @keyframes borderWave {
+    0% {
+      left: -100%;
+    }
+    100% {
+      left: 100%;
+    }
+  }
+  
+  .border-pulse {
+    animation: borderPulse 2s ease-in-out infinite;
+  }
+  
+  @keyframes borderPulse {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.7), 0 0 0 0 rgba(168, 85, 247, 0.7);
+    }
+    50% {
+      box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.3), 0 0 0 8px rgba(168, 85, 247, 0.1);
+    }
+  }
+  
+  @keyframes borderSlide {
+    0% {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+  }
+  
+  @keyframes borderSlideVertical {
+    0% {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+  }
+  
+  @keyframes borderRotate {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+  
+  .hover-lift {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-8px) scale(1.02);
+  }
+}
