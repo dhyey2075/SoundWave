@@ -8,6 +8,7 @@ import { MusicPlayer } from '@/components/MusicPlayer';
 import { BackgroundDots } from '@/components/BackgroundDots';
 import { CursorFollower } from '@/components/CursorFollower';
 import { MusicLoader } from '@/components/MusicLoader';
+import { OfflineIndicator } from '@/components/OfflineIndicator';
 import { searchSongs } from '@/lib/api';
 import { chipSounds } from '@/lib/sounds';
 import type { Song } from '@/lib/types';
@@ -54,6 +55,7 @@ export default function Home() {
 
   return (
     <main className="relative min-h-screen pb-32 overflow-hidden">
+      <OfflineIndicator />
       <BackgroundDots />
       <CursorFollower />
       
