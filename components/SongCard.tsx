@@ -76,6 +76,21 @@ export function SongCard({ song, isPlaying, isActive, onPlay }: SongCardProps) {
     };
   }, []);
 
+  const handleDragStart = (event: React.DragEvent<HTMLDivElement>) => {
+    try {
+      event.dataTransfer.setData('application/json', JSON.stringify(song));
+      event.dataTransfer.effectAllowed = 'copy';
+    } catch (error) {
+      console.error('Unable to attach song data to drag event', error);
+    }
+    setIsHovered(true);
+  };
+
+  const handleDragEnd = () => {
+    setIsHovered(false);
+    stopAllChipSounds();
+  };
+
   const handlePlayClick = () => {
     chipSounds.click();
     onPlay(song);
@@ -86,6 +101,10 @@ export function SongCard({ song, isPlaying, isActive, onPlay }: SongCardProps) {
       className="group relative"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      title="Drag to add this song to your queue"
     >
       <div
         className={`

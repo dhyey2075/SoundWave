@@ -288,4 +288,41 @@
       opacity: 0;
     }
   }
+
+  /* Custom scrollbar for queue */
+  .queue-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 110, 199, 0.5) transparent;
+  }
+
+  .queue-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .queue-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 10px;
+  }
+
+  .queue-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      180deg,
+      rgba(255, 110, 199, 0.6) 0%,
+      rgba(255, 235, 110, 0.6) 50%,
+      rgba(110, 255, 199, 0.6) 100%
+    );
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  .queue-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+      180deg,
+      rgba(255, 110, 199, 0.8) 0%,
+      rgba(255, 235, 110, 0.8) 50%,
+      rgba(110, 255, 199, 0.8) 100%
+    );
+    background-clip: padding-box;
+  }
 }

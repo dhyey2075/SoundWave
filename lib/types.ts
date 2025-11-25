@@ -13,5 +13,23 @@ export interface Song {
 export interface PlayerState {
   currentSong: Song | null;
   isPlaying: boolean;
-  volume: number;
+}
+
+export interface Playlist {
+  id: string;
+  name: string;
+  description?: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  song_count?: number;
+}
+
+export interface PlaylistSong {
+  id: string;
+  playlist_id: string;
+  song_id: string;
+  song_data: Song;
+  position: number;
+  created_at: string;
 }

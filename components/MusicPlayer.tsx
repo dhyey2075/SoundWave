@@ -7,7 +7,8 @@ import {
   SkipBack, 
   SkipForward, 
   Volume2,
-  VolumeX
+  VolumeX,
+  ListMusic
 } from 'lucide-react';
 import { Song } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,9 @@ interface MusicPlayerProps {
   onPlayPause: () => void;
   onNext: () => void;
   onPrevious: () => void;
+  onToggleQueue: () => void;
+  isQueueOpen: boolean;
+  queueCount: number;
 }
 
 export function MusicPlayer({ 
@@ -27,7 +31,10 @@ export function MusicPlayer({
   isPlaying, 
   onPlayPause, 
   onNext, 
-  onPrevious 
+  onPrevious,
+  onToggleQueue,
+  isQueueOpen,
+  queueCount
 }: MusicPlayerProps) {
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
@@ -215,6 +222,24 @@ export function MusicPlayer({
               className="glass hover:bg-white/10 rounded-full h-10 w-10"
             >
               <SkipForward className="h-5 w-5" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => {
+                chipSounds.click();
+                onToggleQueue();
+              }}
+              className={`glass hover:bg-white/10 rounded-full h-10 w-10 relative transition-all ${
+                isQueueOpen ? 'bg-white/15 ring-1 ring-primary/60' : ''
+              }`}
+            >
+              <ListMusic className="h-5 w-5" />
+              {queueCount > 0 && (
+                <span className="absolute -top-1 -right-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-primary text-background">
+                  {queueCount}
+                </span>
+              )}
             </Button>
           </div>
 
