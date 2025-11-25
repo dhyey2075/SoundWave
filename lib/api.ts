@@ -9,15 +9,31 @@ export async function searchSongs(query: string): Promise<Song[]> {
     );
     
     if (!response.ok) {
-      console.error(`Music API error (${response.status}):`, await response.text());
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.error(`Music API error (${response.status}):`, errorText);
       return [];
     }
     
-    const data = await response.json();
+    // Get response text first to handle JSON parsing errors gracefully
+    const responseText = await response.text();
+    
+    if (!responseText || responseText.trim() === '') {
+      console.error('Music API returned empty response');
+      return [];
+    }
+    
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse JSON response:', parseError);
+      console.error('Response text:', responseText.substring(0, 200));
+      return [];
+    }
     
     // Check if data is an array
     if (!Array.isArray(data)) {
-      console.error('Music API returned non-array response:', data);
+      console.error('Music API returned non-array response:', typeof data, data);
       return [];
     }
     
@@ -35,8 +51,9 @@ export async function searchSongs(query: string): Promise<Song[]> {
         year: item.year || '',
         artist: item.primary_artists || item.singers || item.artist || 'Unknown',
       }));
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching songs:', error);
+    // Return empty array instead of throwing to allow import to continue
     return [];
   }
 }

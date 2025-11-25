@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Music, Loader2, CheckCircle2, XCircle, AlertCircle, Import } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Music, Loader2, CheckCircle2, XCircle, AlertCircle, Import, Minimize2, Maximize2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -50,12 +50,18 @@ export function SpotifyImport({ userId, onImportComplete }: SpotifyImportProps) 
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [targetPlaylistId, setTargetPlaylistId] = useState<string>('');
   const [importProgress, setImportProgress] = useState<{
+    current: number;
     total: number;
     imported: number;
     failed: number;
     skipped: number;
+    currentTrack: string;
+    errors: string[];
   } | null>(null);
-  const [importErrors, setImportErrors] = useState<string[]>([]);
+  const [importErrors, setImportErrors] = useState<Array<{ track: string; reason: string }>>([]);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [importSessionId, setImportSessionId] = useState<string | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Check if user is connected to Spotify
@@ -149,6 +155,29 @@ export function SpotifyImport({ userId, onImportComplete }: SpotifyImportProps) 
     loadSpotifyPlaylists();
   };
 
+  // Poll for progress updates
+  useEffect(() => {
+    if (importSessionId && isImporting) {
+      progressIntervalRef.current = setInterval(async () => {
+        try {
+          const response = await fetch(`/api/spotify/import-progress?sessionId=${importSessionId}`);
+          if (response.ok) {
+            const progress = await response.json();
+            setImportProgress(progress);
+          }
+        } catch (error) {
+          console.error('Error fetching progress:', error);
+        }
+      }, 1000); // Poll every second
+
+      return () => {
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+        }
+      };
+    }
+  }, [importSessionId, isImporting]);
+
   const handleImport = async () => {
     if (!selectedPlaylistId) {
       alert('Please select a playlist to import');
@@ -168,6 +197,8 @@ export function SpotifyImport({ userId, onImportComplete }: SpotifyImportProps) 
     setIsImporting(true);
     setImportProgress(null);
     setImportErrors([]);
+    const sessionId = `import_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    setImportSessionId(sessionId);
 
     try {
       const selectedPlaylist = spotifyPlaylists.find((p) => p.id === selectedPlaylistId);
@@ -183,6 +214,7 @@ export function SpotifyImport({ userId, onImportComplete }: SpotifyImportProps) 
           playlistName,
           createNewPlaylist,
           targetPlaylistId: createNewPlaylist ? null : targetPlaylistId,
+          sessionId,
         }),
       });
 
@@ -192,7 +224,15 @@ export function SpotifyImport({ userId, onImportComplete }: SpotifyImportProps) 
       }
 
       const data = await response.json();
-      setImportProgress(data.results);
+      setImportProgress({
+        current: data.results.total,
+        total: data.results.total,
+        imported: data.results.imported,
+        failed: data.results.failed,
+        skipped: data.results.skipped,
+        currentTrack: 'Complete',
+        errors: [],
+      });
       setImportErrors(data.results.errors || []);
 
       if (data.results.imported > 0) {
@@ -207,6 +247,10 @@ export function SpotifyImport({ userId, onImportComplete }: SpotifyImportProps) 
       alert(error.message || 'Failed to import playlist. Please try again.');
     } finally {
       setIsImporting(false);
+      setImportSessionId(null);
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
     }
   };
 
@@ -236,8 +280,9 @@ export function SpotifyImport({ userId, onImportComplete }: SpotifyImportProps) 
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6 py-4">
-            {!isConnected ? (
+          {!isMinimized && (
+            <div className="space-y-6 py-4">
+              {!isConnected ? (
               <div className="text-center py-8">
                 <p className="text-muted-foreground mb-4">
                   Connect your Spotify account to import playlists
@@ -340,55 +385,94 @@ export function SpotifyImport({ userId, onImportComplete }: SpotifyImportProps) 
                     </div>
 
                     {/* Import Progress */}
-                    {importProgress && (
-                      <div className="space-y-2 p-4 rounded-lg bg-white/5 border border-white/10">
+                    {(importProgress || isImporting) && (
+                      <div className="space-y-3 p-4 rounded-lg bg-white/5 border border-white/10">
+                        {isImporting && importProgress && (
+                          <div className="text-sm text-muted-foreground">
+                            Processing: <span className="text-foreground font-medium">{importProgress.currentTrack}</span>
+                          </div>
+                        )}
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Import Progress</span>
                           <span className="font-medium">
-                            {importProgress.imported} / {importProgress.total}
+                            {importProgress?.current || 0} / {importProgress?.total || 0}
                           </span>
                         </div>
-                        <div className="w-full bg-white/10 rounded-full h-2">
+                        <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden">
                           <div
-                            className="bg-gradient-to-r from-primary to-cyan-500 h-2 rounded-full transition-all"
+                            className="bg-gradient-to-r from-primary via-pink-500 to-cyan-500 h-3 rounded-full transition-all duration-300 flex items-center justify-end pr-2"
                             style={{
-                              width: `${(importProgress.imported / importProgress.total) * 100}%`,
+                              width: `${importProgress ? (importProgress.current / importProgress.total) * 100 : 0}%`,
                             }}
-                          />
+                          >
+                            {importProgress && importProgress.current > 0 && (
+                              <span className="text-[10px] text-white font-semibold">
+                                {Math.round((importProgress.current / importProgress.total) * 100)}%
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <CheckCircle2 className="h-3 w-3 text-green-400" />
-                            {importProgress.imported} imported
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <XCircle className="h-3 w-3 text-red-400" />
-                            {importProgress.failed} not found
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3 text-yellow-400" />
-                            {importProgress.skipped} skipped
-                          </span>
-                        </div>
-                        {importErrors.length > 0 && (
-                          <details className="mt-2">
-                            <summary className="text-xs text-muted-foreground cursor-pointer">
-                              View errors ({importErrors.length})
-                            </summary>
-                            <ul className="mt-2 space-y-1 text-xs text-muted-foreground max-h-32 overflow-y-auto">
-                              {importErrors.slice(0, 10).map((error, idx) => (
-                                <li key={idx}>• {error}</li>
+                        {importProgress && (
+                          <div className="flex items-center gap-4 text-xs">
+                            <span className="flex items-center gap-1 text-green-400">
+                              <CheckCircle2 className="h-3 w-3" />
+                              {importProgress.imported} imported
+                            </span>
+                            <span className="flex items-center gap-1 text-red-400">
+                              <XCircle className="h-3 w-3" />
+                              {importProgress.failed} failed
+                            </span>
+                            <span className="flex items-center gap-1 text-yellow-400">
+                              <AlertCircle className="h-3 w-3" />
+                              {importProgress.skipped} skipped
+                            </span>
+                          </div>
+                        )}
+                        {!isImporting && importErrors.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            <div className="text-sm font-semibold text-red-400">
+                              Problems encountered ({importErrors.length} tracks):
+                            </div>
+                            <div className="max-h-48 overflow-y-auto space-y-1 text-xs">
+                              {importErrors.map((error, idx) => (
+                                <div key={idx} className="p-2 rounded bg-red-500/10 border border-red-500/20">
+                                  <div className="font-medium text-red-300">{error.track}</div>
+                                  <div className="text-muted-foreground mt-0.5">{error.reason}</div>
+                                </div>
                               ))}
-                            </ul>
-                          </details>
+                            </div>
+                          </div>
                         )}
                       </div>
                     )}
                   </>
                 )}
               </>
-            )}
-          </div>
+              )}
+            </div>
+          )}
+          
+          {isMinimized && isImporting && importProgress && (
+            <div className="p-4 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Importing...</span>
+                <span className="font-medium">
+                  {importProgress.current} / {importProgress.total}
+                </span>
+              </div>
+              <div className="w-full bg-white/10 rounded-full h-2">
+                <div
+                  className="bg-gradient-to-r from-primary to-cyan-500 h-2 rounded-full transition-all"
+                  style={{
+                    width: `${(importProgress.current / importProgress.total) * 100}%`,
+                  }}
+                />
+              </div>
+              <div className="text-xs text-muted-foreground truncate">
+                {importProgress.currentTrack}
+              </div>
+            </div>
+          )}
 
           <DialogFooter>
             <Button
