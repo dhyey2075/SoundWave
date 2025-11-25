@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Play, Pause } from 'lucide-react';
+import { Play, Pause, Download, Loader2 } from 'lucide-react';
 import { Song } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { chipSounds, stopAllChipSounds } from '@/lib/sounds';
+import { downloadSongFile } from '@/lib/download';
 
 interface SongCardProps {
   song: Song;
@@ -33,6 +34,7 @@ const getColorForSong = (songId: string) => {
 
 export function SongCard({ song, isPlaying, isActive, onPlay }: SongCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const textColor = getColorForSong(song.id);
   const showBorderAnimation = isActive && isPlaying;
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -96,6 +98,21 @@ export function SongCard({ song, isPlaying, isActive, onPlay }: SongCardProps) {
     onPlay(song);
   };
 
+  const handleDownload = async (event?: React.MouseEvent<HTMLButtonElement>) => {
+    event?.stopPropagation();
+    if (isDownloading) return;
+    chipSounds.select();
+    setIsDownloading(true);
+    try {
+      await downloadSongFile(song);
+    } catch (error) {
+      console.error('Error downloading song:', error);
+      alert('Unable to download this track. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <div
       className="group relative"
@@ -121,6 +138,22 @@ export function SongCard({ song, isPlaying, isActive, onPlay }: SongCardProps) {
           animation: !isHovered && !showBorderAnimation ? 'floating 3s ease-in-out infinite' : 'none',
         }}
       >
+        <div className="absolute top-4 right-4 z-30 flex gap-2">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={handleDownload}
+            disabled={isDownloading}
+            className="glass-strong bg-black/50 hover:bg-black/70 rounded-full h-9 w-9 text-white"
+            title="Download track"
+          >
+            {isDownloading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
         {/* Glowing colorful border on hover - around entire card */}
         {isHovered && (
           <div

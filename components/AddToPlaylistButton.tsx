@@ -83,7 +83,7 @@ export function AddToPlaylistButton({ song, userId, onAdd }: AddToPlaylistButton
 
   return (
     <>
-      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+      <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>
             <Button
