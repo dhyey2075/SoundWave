@@ -37,3 +37,5 @@ next-env.d.ts
 ADMIN_SETUP.md
 SPOTIFY_SETUP.md
 ADMIN_SETUP.md
+LOCAL_TESTING.md
+ngrok-setup.md
