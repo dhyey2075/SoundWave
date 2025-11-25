@@ -25,17 +25,36 @@ This will create the following tables:
 
 ### 2. Environment Variables
 
-Add the following to your `.env.local` file:
+Create a `.env.local` file in your project root (if it doesn't exist) and add the following:
 
 ```env
-# Admin Credentials (change these in production!)
+# Admin Credentials (change these from defaults!)
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=admin123
 ```
 
-**⚠️ Important:** Change these credentials in production! The default credentials are:
-- Username: `admin`
-- Password: `admin123`
+**⚠️ Important:** 
+- The default credentials are: `admin` / `admin123`
+- **You MUST change these in production!**
+- After changing, restart your Next.js dev server (`npm run dev`)
+
+#### How to Change Admin Password:
+
+1. **Create or edit `.env.local` file** in your project root:
+   ```env
+   ADMIN_USERNAME=your_new_username
+   ADMIN_PASSWORD=your_new_password
+   ```
+
+2. **Restart your Next.js server** for changes to take effect:
+   ```bash
+   # Stop the server (Ctrl+C) and restart
+   npm run dev
+   ```
+
+3. **Use the new credentials** to login at `/admin/login`
+
+**Note:** The `.env.local` file is gitignored and won't be committed to version control, keeping your credentials safe.
 
 ### 3. Access the Admin Dashboard
 

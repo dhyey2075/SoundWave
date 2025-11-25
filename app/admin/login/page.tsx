@@ -143,11 +143,11 @@ export default function AdminLoginPage() {
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
+          {/* <div className="mt-6 text-center">
             <p className="text-xs text-muted-foreground">
               Default credentials: admin / admin123
             </p>
-          </div>
+          </div> */}
         </div>
       </div>
     </main>

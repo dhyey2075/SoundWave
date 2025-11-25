@@ -34,3 +34,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env
+ADMIN_SETUP.md
+SPOTIFY_SETUP.md
+ADMIN_SETUP.md

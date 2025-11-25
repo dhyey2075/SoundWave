@@ -106,9 +106,17 @@ export default function AdminDashboardPage() {
   };
 
   const handleLogout = async () => {
-    // Clear admin session cookie
-    document.cookie = 'admin_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    router.push('/admin/login');
+    try {
+      // Call logout API to clear the httpOnly cookie
+      await fetch('/api/admin/logout', {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error('Error during logout:', error);
+    } finally {
+      // Redirect to login page
+      router.push('/admin/login');
+    }
   };
 
   const formatDuration = (seconds: number): string => {

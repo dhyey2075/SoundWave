@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label';
 import { createPlaylist, getUserPlaylists, deletePlaylist } from '@/lib/playlists';
 import type { Playlist, Song } from '@/lib/types';
 import { chipSounds } from '@/lib/sounds';
+import { SpotifyImport } from '@/components/SpotifyImport';
 
 interface PlaylistManagerProps {
   userId: string;
@@ -71,6 +72,7 @@ export function PlaylistManager({ userId, onPlayFromPlaylist }: PlaylistManagerP
 
   return (
     <div className="flex items-center gap-2">
+      <SpotifyImport userId={userId} onImportComplete={loadPlaylists} />
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogTrigger asChild>
           <Button
