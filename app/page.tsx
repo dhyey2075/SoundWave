@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { MusicLoader } from '@/components/MusicLoader';
+import { AuthLoader } from '@/components/AuthLoader';
 
 export default function Home() {
   const router = useRouter();
@@ -20,9 +20,5 @@ export default function Home() {
     });
   }, [router, supabase]);
 
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <MusicLoader />
-    </div>
-  );
+  return <AuthLoader />;
 }

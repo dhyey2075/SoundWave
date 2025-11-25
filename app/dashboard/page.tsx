@@ -2,19 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Music2, LogOut, User, X } from 'lucide-react';
+import { Music2, LogOut, User, X, ListMusic, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BackgroundDots } from '@/components/BackgroundDots';
 import { CursorFollower } from '@/components/CursorFollower';
 import { SearchBar } from '@/components/SearchBar';
 import { SongCard } from '@/components/SongCard';
+import { PlaylistSongRow } from '@/components/PlaylistSongRow';
 import { MusicPlayer } from '@/components/MusicPlayer';
 import { MusicLoader } from '@/components/MusicLoader';
 import { OfflineIndicator } from '@/components/OfflineIndicator';
 import { createClient } from '@/lib/supabase/client';
 import { searchSongs } from '@/lib/api';
 import { chipSounds } from '@/lib/sounds';
-import type { Song } from '@/lib/types';
+import { PlaylistManager, PlaylistView } from '@/components/PlaylistManager';
+import { AddToPlaylistButton } from '@/components/AddToPlaylistButton';
+import { getUserPlaylists, deletePlaylist, getPlaylistSongs } from '@/lib/playlists';
+import type { Song, Playlist } from '@/lib/types';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export default function DashboardPage() {
@@ -29,6 +33,11 @@ export default function DashboardPage() {
   const [isQueueDragActive, setIsQueueDragActive] = useState(false);
   const [draggedQueueIndex, setDraggedQueueIndex] = useState<number | null>(null);
   const [dragOverQueueIndex, setDragOverQueueIndex] = useState<number | null>(null);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [showPlaylists, setShowPlaylists] = useState(false);
+  const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
+  const [playlistSongs, setPlaylistSongs] = useState<Song[]>([]);
+  const [isLoadingPlaylists, setIsLoadingPlaylists] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -57,6 +66,23 @@ export default function DashboardPage() {
     return () => subscription.unsubscribe();
   }, [router, supabase]);
 
+  useEffect(() => {
+    if (user) {
+      loadPlaylists();
+    }
+  }, [user]);
+
+  const loadPlaylists = async () => {
+    if (!user) return;
+    setIsLoadingPlaylists(true);
+    try {
+      const data = await getUserPlaylists(user.id);
+      setPlaylists(data);
+    } finally {
+      setIsLoadingPlaylists(false);
+    }
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push('/signin');
@@ -75,6 +101,53 @@ export default function DashboardPage() {
     } else {
       setCurrentSong(song);
       setIsPlaying(true);
+    }
+  };
+
+  const handlePlayFromPlaylist = async (songs: Song[]) => {
+    if (songs.length === 0) return;
+    setCurrentSong(songs[0]);
+    setIsPlaying(true);
+    // Add all remaining songs to queue
+    if (songs.length > 1) {
+      setQueue(songs.slice(1));
+    } else {
+      setQueue([]);
+    }
+  };
+
+  const handleDeletePlaylist = async (playlistId: string) => {
+    const success = await deletePlaylist(playlistId);
+    if (success) {
+      await loadPlaylists();
+      if (selectedPlaylist?.id === playlistId) {
+        setSelectedPlaylist(null);
+        setPlaylistSongs([]);
+      }
+    }
+  };
+
+  const handleViewPlaylist = async (playlist: Playlist) => {
+    chipSounds.click();
+    setSelectedPlaylist(playlist);
+    setIsLoadingPlaylists(true);
+    try {
+      const { getPlaylistSongs } = await import('@/lib/playlists');
+      const songs = await getPlaylistSongs(playlist.id);
+      setPlaylistSongs(songs);
+    } finally {
+      setIsLoadingPlaylists(false);
+    }
+  };
+
+  const handleRemoveSongFromPlaylist = async (songId: string) => {
+    if (!selectedPlaylist) return;
+    chipSounds.click();
+    const { removeSongFromPlaylist } = await import('@/lib/playlists');
+    const success = await removeSongFromPlaylist(selectedPlaylist.id, songId);
+    if (success) {
+      setPlaylistSongs(playlistSongs.filter(s => s.id !== songId));
+      await loadPlaylists(); // Refresh playlist count
     }
   };
 
@@ -225,6 +298,69 @@ export default function DashboardPage() {
               </h1>
             </div>
             <div className="flex items-center gap-4">
+              <PlaylistManager
+                userId={user.id}
+                onPlayFromPlaylist={handlePlayFromPlaylist}
+              />
+              {songs.length > 0 && !showPlaylists ? (
+                <Button
+                  onClick={() => {
+                    chipSounds.click();
+                    setShowPlaylists(true);
+                    setSelectedPlaylist(null);
+                    setPlaylistSongs([]);
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  className="glass hover:bg-white/10"
+                >
+                  <ListMusic className="h-4 w-4 mr-2" />
+                  My Playlists ({playlists.length})
+                </Button>
+              ) : showPlaylists ? (
+                <Button
+                  onClick={() => {
+                    chipSounds.click();
+                    setShowPlaylists(false);
+                    setSelectedPlaylist(null);
+                    setPlaylistSongs([]);
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  className="glass hover:bg-white/10 bg-white/15"
+                >
+                  ← Back to Songs
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => {
+                    chipSounds.click();
+                    setShowPlaylists(true);
+                    setSelectedPlaylist(null);
+                    setPlaylistSongs([]);
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  className="glass hover:bg-white/10"
+                >
+                  <ListMusic className="h-4 w-4 mr-2" />
+                  My Playlists ({playlists.length})
+                </Button>
+              )}
+              {selectedPlaylist && (
+                <Button
+                  onClick={() => {
+                    chipSounds.click();
+                    setSelectedPlaylist(null);
+                    setPlaylistSongs([]);
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  className="glass hover:bg-white/10"
+                >
+                  ← Back to Playlists
+                </Button>
+              )}
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <User className="h-4 w-4" />
                 <span className="hidden sm:inline">
@@ -253,29 +389,105 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {isLoading ? (
+          {showPlaylists && (
+            <div className="mb-12 w-full">
+              {isLoadingPlaylists ? (
+                <MusicLoader />
+              ) : selectedPlaylist ? (
+                <div>
+                  <div className="mb-6">
+                    <h2 className="text-3xl font-bold mb-2 text-foreground">{selectedPlaylist.name}</h2>
+                    {selectedPlaylist.description && (
+                      <p className="text-muted-foreground mb-4">{selectedPlaylist.description}</p>
+                    )}
+                    <div className="flex items-center gap-4">
+                      <Button
+                        onClick={() => handlePlayFromPlaylist(playlistSongs)}
+                        disabled={playlistSongs.length === 0}
+                        className="glass-strong bg-primary/20 hover:bg-primary/30"
+                      >
+                        <Play className="h-4 w-4 mr-2" />
+                        Play All
+                      </Button>
+                      <p className="text-sm text-muted-foreground">
+                        {playlistSongs.length} song{playlistSongs.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  </div>
+                  {playlistSongs.length === 0 ? (
+                    <div className="text-center py-12 glass-strong rounded-2xl">
+                      <p className="text-muted-foreground">This playlist is empty. Add some songs to get started!</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {playlistSongs.map((song) => (
+                        <PlaylistSongRow
+                          key={song.id}
+                          song={song}
+                          isPlaying={isPlaying}
+                          isActive={currentSong?.id === song.id}
+                          onPlay={handlePlay}
+                          onRemove={handleRemoveSongFromPlaylist}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <h2 className="text-2xl font-bold mb-6 text-foreground">Your Playlists</h2>
+                  {playlists.length === 0 ? (
+                    <div className="text-center py-12 glass-strong rounded-2xl">
+                      <p className="text-muted-foreground">You don't have any playlists yet. Create one to get started!</p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {playlists.map((playlist) => (
+                        <PlaylistView
+                          key={playlist.id}
+                          playlist={playlist}
+                          userId={user.id}
+                          onPlay={handlePlayFromPlaylist}
+                          onDelete={handleDeletePlaylist}
+                          onView={handleViewPlaylist}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {!showPlaylists && isLoading ? (
             <MusicLoader />
-          ) : songs.length > 0 ? (
+          ) : !showPlaylists && songs.length > 0 ? (
             <div className="flex justify-center w-full">
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 w-full">
                 {songs.map((song) => (
-                  <SongCard
-                    key={song.id}
-                    song={song}
-                    isPlaying={isPlaying}
-                    isActive={currentSong?.id === song.id}
-                    onPlay={handlePlay}
-                  />
+                  <div key={song.id} className="relative group">
+                    <SongCard
+                      song={song}
+                      isPlaying={isPlaying}
+                      isActive={currentSong?.id === song.id}
+                      onPlay={handlePlay}
+                    />
+                    <AddToPlaylistButton
+                      song={song}
+                      userId={user.id}
+                      onAdd={() => loadPlaylists()}
+                    />
+                  </div>
                 ))}
               </div>
             </div>
-          ) : (
+          ) : !showPlaylists ? (
             <div className="text-center py-20">
               <p className="text-xl text-muted-foreground">
                 Search for your favorite songs to start listening
               </p>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 

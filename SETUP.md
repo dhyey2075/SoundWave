@@ -50,6 +50,19 @@ You can find these values in your Supabase project settings:
 - `/auth/callback` - OAuth callback handler (automatically redirects to dashboard)
 - `/` - Home page (redirects to signin or dashboard based on auth status)
 
+## Database Setup
+
+1. **Create Playlist Tables:**
+   - Go to your Supabase project dashboard
+   - Navigate to SQL Editor
+   - Copy and paste the contents of `supabase-schema.sql`
+   - Click "Run" to execute the SQL script
+   - This will create:
+     - `playlists` table for storing user playlists
+     - `playlist_songs` table for storing songs in playlists
+     - Row Level Security (RLS) policies for data protection
+     - Indexes for better query performance
+
 ## Features
 
 - ✅ Google OAuth sign-in
@@ -57,4 +70,8 @@ You can find these values in your Supabase project settings:
 - ✅ Automatic redirects based on auth status
 - ✅ Sign out functionality
 - ✅ User session management
+- ✅ Playlist creation and management
+- ✅ Add songs to playlists
+- ✅ Play songs from playlists
+- ✅ Queue management with drag-and-drop
 
