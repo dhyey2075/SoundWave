@@ -42,6 +42,11 @@ export function MusicPlayer({
   const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
   const previousSongIdRef = useRef<string | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
+  const sessionStartTimeRef = useRef<number>(0);
+  const songsPlayedInSessionRef = useRef<number>(0);
+  const lastTrackedTimeRef = useRef<number>(0);
+  const trackingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -108,12 +113,131 @@ export function MusicPlayer({
     }
   }, [isPlaying, song]);
 
+  // Start listening session when song starts playing
+  useEffect(() => {
+    if (isPlaying && song && !sessionIdRef.current) {
+      // Start a new listening session
+      fetch('/api/track/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start' }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.sessionId) {
+            sessionIdRef.current = data.sessionId;
+            sessionStartTimeRef.current = Date.now();
+            songsPlayedInSessionRef.current = 1;
+          }
+        })
+        .catch((err) => console.error('Error starting session:', err));
+    }
+
+    return () => {
+      // End session when component unmounts or song changes
+      if (sessionIdRef.current) {
+        const totalDuration = Math.floor((Date.now() - sessionStartTimeRef.current) / 1000);
+        fetch('/api/track/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update',
+            sessionId: sessionIdRef.current,
+            totalDurationSeconds: totalDuration,
+            songsPlayed: songsPlayedInSessionRef.current,
+          }),
+        }).catch((err) => console.error('Error ending session:', err));
+        sessionIdRef.current = null;
+      }
+    };
+  }, [isPlaying, song]);
+
+  // Track song plays and listening duration
+  useEffect(() => {
+    if (isPlaying && song) {
+      // Track song play when it starts
+      fetch('/api/track/play', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          song,
+          durationSeconds: 0,
+          completed: false,
+        }),
+      }).catch((err) => console.error('Error tracking song play:', err));
+
+      // Track listening duration every 10 seconds
+      trackingIntervalRef.current = setInterval(() => {
+        if (audioRef.current && song) {
+          const listenedSeconds = Math.floor(audioRef.current.currentTime - lastTrackedTimeRef.current);
+          if (listenedSeconds > 5) {
+            // Track every 10 seconds of listening
+            fetch('/api/track/play', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                song,
+                durationSeconds: listenedSeconds,
+                completed: false,
+              }),
+            }).catch((err) => console.error('Error tracking listening:', err));
+            lastTrackedTimeRef.current = audioRef.current.currentTime;
+          }
+        }
+      }, 10000); // Track every 10 seconds
+
+      // Track when song ends
+      const handleEnded = () => {
+        if (audioRef.current && song) {
+          const totalDuration = Math.floor(audioRef.current.duration);
+          fetch('/api/track/play', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              song,
+              durationSeconds: totalDuration,
+              completed: true,
+            }),
+          }).catch((err) => console.error('Error tracking completed play:', err));
+          
+          if (sessionIdRef.current) {
+            songsPlayedInSessionRef.current++;
+          }
+        }
+      };
+
+      const audio = audioRef.current;
+      if (audio) {
+        audio.addEventListener('ended', handleEnded);
+      }
+
+      return () => {
+        if (trackingIntervalRef.current) {
+          clearInterval(trackingIntervalRef.current);
+        }
+        if (audio) {
+          audio.removeEventListener('ended', handleEnded);
+        }
+      };
+    } else {
+      if (trackingIntervalRef.current) {
+        clearInterval(trackingIntervalRef.current);
+        trackingIntervalRef.current = null;
+      }
+    }
+  }, [isPlaying, song]);
+
   // Update current time and duration from audio element
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const updateTime = () => setCurrentTime(audio.currentTime);
+    const updateTime = () => {
+      setCurrentTime(audio.currentTime);
+      if (lastTrackedTimeRef.current === 0) {
+        lastTrackedTimeRef.current = audio.currentTime;
+      }
+    };
     const updateDuration = () => setDuration(audio.duration);
 
     audio.addEventListener('timeupdate', updateTime);
@@ -124,6 +248,7 @@ export function MusicPlayer({
       audio.removeEventListener('timeupdate', updateTime);
       audio.removeEventListener('loadedmetadata', updateDuration);
       audio.removeEventListener('durationchange', updateDuration);
+      lastTrackedTimeRef.current = 0;
     };
   }, [song]);
 
